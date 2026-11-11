@@ -1,3 +1,4 @@
+import { useSunyieldFieldAccess } from '@/sunyield/hooks/useSunyieldFieldAccess';
 import { useObjectMetadataItemById } from '@/object-metadata/hooks/useObjectMetadataItemById';
 import { formatFieldMetadataItemAsFieldDefinition } from '@/object-metadata/utils/formatFieldMetadataItemAsFieldDefinition';
 import { useObjectPermissions } from '@/object-record/hooks/useObjectPermissions';
@@ -17,6 +18,7 @@ export const useIsRecordFieldReadOnly = ({
   objectMetadataId,
   recordId,
 }: UseFieldIsReadOnlyParams) => {
+  const canManageField = useSunyieldFieldAccess(recordId, fieldMetadataId);
   const { objectMetadataItem } = useObjectMetadataItemById({
     objectId: objectMetadataId,
   });
@@ -46,6 +48,8 @@ export const useIsRecordFieldReadOnly = ({
   if (!isDefined(fieldMetadataItem)) {
     return false;
   }
+
+  if (canManageField) return false;
 
   return isRecordFieldReadOnly({
     isRecordReadOnly,

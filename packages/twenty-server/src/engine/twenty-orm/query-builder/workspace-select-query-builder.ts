@@ -736,12 +736,14 @@ export class WorkspaceSelectQueryBuilder implements WhereExpressionLike {
       ?.relationShapeByFieldName[clause.relationFieldName];
   }
 
-  markRowLevelPermissionApplied(alias: string): boolean {
-    if (this.aliasesWithRowLevelPermissionApplied.has(alias)) {
+  markRowLevelPermissionApplied(alias: string, policy = 'core'): boolean {
+    const key = `${policy}:${alias}`;
+
+    if (this.aliasesWithRowLevelPermissionApplied.has(key)) {
       return false;
     }
 
-    this.aliasesWithRowLevelPermissionApplied.add(alias);
+    this.aliasesWithRowLevelPermissionApplied.add(key);
 
     return true;
   }

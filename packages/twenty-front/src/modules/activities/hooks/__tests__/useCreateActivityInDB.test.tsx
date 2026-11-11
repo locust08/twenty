@@ -1,3 +1,7 @@
+const mockProtectedCreate = { protectedCreate: false, create: jest.fn() };
+jest.mock('@/sunyield/hooks/useCreateSunyieldActivity', () => ({
+  useCreateSunyieldActivity: () => mockProtectedCreate,
+}));
 import { type MockedResponse } from '@apollo/client/testing';
 import { act, renderHook } from '@testing-library/react';
 

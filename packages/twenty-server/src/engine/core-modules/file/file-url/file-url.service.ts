@@ -1,3 +1,8 @@
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { workspaceAuthContextStorage } from 'src/engine/core-modules/auth/storage/workspace-auth-context.storage';
+import { authorizeSunyieldFile } from 'src/modules/sunyield/permissions/sunyield-file-access';
+import { SUNYIELD_WORKSPACE_ID } from 'src/modules/sunyield/authorize-sunyield-status';
 import { Injectable } from '@nestjs/common';
 
 import { FileFolder } from 'twenty-shared/types';
@@ -17,6 +22,7 @@ export class FileUrlService {
   constructor(
     private readonly jwtWrapperService: JwtWrapperService,
     private readonly twentyConfigService: TwentyConfigService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   async signWorkspaceLogoUrl(
@@ -62,6 +68,38 @@ export class FileUrlService {
     workspaceId: string;
     fileFolder: FileFolder;
   }): Promise<string> {
+    if (
+      workspaceId === SUNYIELD_WORKSPACE_ID &&
+      fileFolder === FileFolder.FilesField
+    ) {
+      const context = workspaceAuthContextStorage.getStore();
+      try {
+        const sunyieldFileIdentity = await authorizeSunyieldFile(
+          workspaceId,
+          context?.type === 'user' &&
+            context.workspace.id === workspaceId &&
+            !context.agentId &&
+            !context.application &&
+            !context.viaApplication
+            ? {
+                userId: context.user.id,
+                userWorkspaceId: context.userWorkspaceId,
+                workspaceMemberId: context.workspaceMemberId,
+              }
+            : undefined,
+          (sql, parameters) => this.dataSource.query(sql, parameters),
+        );
+        return this.buildSignedFileUrl({
+          fileId,
+          workspaceId,
+          fileFolder,
+          sunyieldFileIdentity,
+        });
+      } catch {
+        return `${this.twentyConfigService.get('SERVER_URL')}/file/${fileFolder}/${encodeURIComponent(fileId)}`;
+      }
+    }
+
     const signingCacheKey = `${workspaceId}:${fileFolder}:${fileId}`;
     const inflightSigning = this.inflightFileUrlSignings.get(signingCacheKey);
 
@@ -90,16 +128,19 @@ export class FileUrlService {
     fileId,
     workspaceId,
     fileFolder,
+    sunyieldFileIdentity,
   }: {
     fileId: string;
     workspaceId: string;
     fileFolder: FileFolder;
+    sunyieldFileIdentity?: FileTokenJwtPayload['sunyieldFileIdentity'];
   }): Promise<string> {
     const payload: FileTokenJwtPayload = {
       workspaceId,
       fileId,
       sub: workspaceId,
       type: JwtTokenTypeEnum.FILE,
+      ...(sunyieldFileIdentity ? { sunyieldFileIdentity } : {}),
     };
 
     const token = await this.jwtWrapperService.signAsyncOrThrow(payload, {

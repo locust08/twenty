@@ -1,3 +1,6 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import { getSunyieldNavigationObjects } from '@/sunyield/utils/sunyieldLayout';
+import { getObjectMetadataForNavigationMenuItem } from '@/navigation-menu-item/display/object/utils/getObjectMetadataForNavigationMenuItem';
 import { type NavigationMenuItem } from '~/generated-metadata/graphql';
 import { isDefined } from 'twenty-shared/utils';
 
@@ -25,13 +28,23 @@ export const useReadableNavigationMenuItems = ({
   const views = useAtomStateValue(viewsSelector);
   const { objectPermissionsByObjectMetadataId } = useObjectPermissions();
 
-  const isItemReadable = (item: NavigationMenuItem) =>
-    isNavigationMenuItemReadable({
+  const { enabled, isAdmin } = useSunyieldLayout();
+  const allowed = getSunyieldNavigationObjects(isAdmin);
+  const isItemReadable = (item: NavigationMenuItem) => {
+    const object = getObjectMetadataForNavigationMenuItem(
+      item,
+      objectMetadataItems,
+      views,
+    );
+    if (enabled && object && !allowed.includes(object.nameSingular))
+      return false;
+    return isNavigationMenuItemReadable({
       item,
       objectMetadataItems,
       views,
       objectPermissionsByObjectMetadataId,
     });
+  };
 
   const filteredFolderChildrenById = new Map<string, NavigationMenuItem[]>();
   for (const [folderId, children] of folderChildrenById) {

@@ -26,6 +26,10 @@ import { setTestObjectMetadataItemsInMetadataStore } from '~/testing/utils/setTe
 import { setTestViewsInMetadataStore } from '~/testing/utils/setTestViewsInMetadataStore';
 
 let mockIsMobile = false;
+let mockSunyieldLayout = false;
+jest.mock('@/sunyield/hooks/useSunyieldLayout', () => ({
+  useSunyieldLayout: () => ({ enabled: mockSunyieldLayout, isAdmin: false }),
+}));
 
 jest.mock('twenty-ui/utilities', () => ({
   ...jest.requireActual('twenty-ui/utilities'),
@@ -218,7 +222,37 @@ const renderHooks = ({
 
 describe('useDefaultHomePagePath', () => {
   afterEach(() => {
+    jotaiStore.set(currentUserState.atom, null);
     mockIsMobile = false;
+    mockSunyieldLayout = false;
+  });
+
+  it('lands Sunyield on Leads after loading, including on mobile', async () => {
+    mockSunyieldLayout = true;
+    mockIsMobile = true;
+    const company = getMockObjectMetadataItemOrThrow('company');
+    const { result } = renderHooks({
+      withCurrentUser: true,
+      withExistingView: false,
+      objectMetadataItems: [
+        { ...company, nameSingular: 'lead', namePlural: 'leads' },
+      ],
+    });
+    await waitFor(() =>
+      expect(result.current.defaultHomePagePath).toBe('/objects/leads'),
+    );
+  });
+
+  it('waits for metadata rather than choosing an incorrect Sunyield landing', async () => {
+    mockSunyieldLayout = true;
+    const { result } = renderHooks({
+      withCurrentUser: true,
+      withExistingView: false,
+      withObjectMetadataLoaded: false,
+    });
+    await waitFor(() =>
+      expect(result.current.defaultHomePagePath).toBe(AppPath.Index),
+    );
   });
 
   it('should return proper path when no currentUser', async () => {

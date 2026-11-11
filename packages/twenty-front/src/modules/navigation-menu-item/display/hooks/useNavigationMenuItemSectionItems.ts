@@ -1,3 +1,6 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import { getSunyieldNavigationObjects } from '@/sunyield/utils/sunyieldLayout';
+import { getObjectMetadataForNavigationMenuItem } from '@/navigation-menu-item/display/object/utils/getObjectMetadataForNavigationMenuItem';
 import { type NavigationMenuItem } from '~/generated-metadata/graphql';
 
 import { isLayoutCustomizationModeEnabledState } from '@/layout-customization/states/isLayoutCustomizationModeEnabledState';
@@ -39,8 +42,23 @@ export const useNavigationMenuItemSectionItems = (): NavigationMenuItem[] => {
     includeInaccessibleObjectBackedItems: isLayoutCustomizationModeEnabled,
   });
 
-  return flattenNavigationMenuItemsWithFolderChildren(
+  const { enabled, isAdmin } = useSunyieldLayout();
+  const result = flattenNavigationMenuItemsWithFolderChildren(
     flatItems,
     workspaceNavigationMenuItemsByFolder,
   );
+  if (!enabled || isLayoutCustomizationModeEnabled) return result;
+  const order = getSunyieldNavigationObjects(isAdmin);
+  return result.sort((first, second) => {
+    const priority = (item: NavigationMenuItem) => {
+      const object = getObjectMetadataForNavigationMenuItem(
+        item,
+        objectMetadataItems,
+        views,
+      );
+      const index = order.indexOf(object?.nameSingular ?? '');
+      return index < 0 ? order.length : index;
+    };
+    return priority(first) - priority(second);
+  });
 };

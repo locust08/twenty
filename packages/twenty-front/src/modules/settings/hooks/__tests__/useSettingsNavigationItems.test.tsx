@@ -235,4 +235,36 @@ describe('useSettingsNavigationItems', () => {
     expect(accountsItem?.isHidden).toBe(false);
     expect(accountsItem?.subItems).toBeUndefined();
   });
+
+  it('hides SunYield mailbox and AI settings while preserving roles and member settings', () => {
+    jotaiStore.set(currentWorkspaceState.atom, {
+      ...mockCurrentWorkspace,
+      id: 'e7e7d4f2-0f82-4a72-a12e-1f61494c61c6',
+    });
+    setPermissionFlags([
+      PermissionFlagType.CONNECTED_ACCOUNTS,
+      PermissionFlagType.AI_SETTINGS,
+      PermissionFlagType.WORKSPACE_MEMBERS,
+      PermissionFlagType.ROLES,
+    ]);
+    const before = jotaiStore.get(currentUserWorkspaceState.atom);
+    const { result } = renderHook(() => useSettingsNavigationItems(), {
+      wrapper: Wrapper,
+    });
+    const items = result.current.flatMap((section) => section.items);
+    expect(
+      items.find((item) => item.path === SettingsPath.Accounts)?.isHidden,
+    ).toBe(true);
+    expect(items.find((item) => item.path === SettingsPath.AI)?.isHidden).toBe(
+      true,
+    );
+    expect(
+      items.find((item) => item.path === SettingsPath.WorkspaceMembersPage),
+    ).toBeDefined();
+    expect(
+      items.find((item) => item.path === SettingsPath.WorkspaceMembersPage)
+        ?.isHidden,
+    ).toBe(false);
+    expect(jotaiStore.get(currentUserWorkspaceState.atom)).toEqual(before);
+  });
 });

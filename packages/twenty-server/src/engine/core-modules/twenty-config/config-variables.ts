@@ -533,6 +533,66 @@ export class ConfigVariables {
 
   @ConfigVariablesMetadata({
     group: ConfigVariablesGroup.EMAIL_SETTINGS,
+    description: 'Resend sending-only API key for system email delivery',
+    type: ConfigVariableType.STRING,
+    isSensitive: true,
+  })
+  @IsOptional()
+  EMAIL_RESEND_API_KEY: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.EMAIL_SETTINGS,
+    description: 'Sunyield private WhatsApp integration configuration',
+    type: ConfigVariableType.STRING,
+    isSensitive: true,
+  })
+  @IsOptional()
+  SUNYIELD_HERMES_URL: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.EMAIL_SETTINGS,
+    description: 'Sunyield private WhatsApp integration configuration',
+    type: ConfigVariableType.STRING,
+    isSensitive: true,
+  })
+  @IsOptional()
+  SUNYIELD_HERMES_ADMIN_TOKEN: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.EMAIL_SETTINGS,
+    description: 'Sunyield private WhatsApp integration configuration',
+    type: ConfigVariableType.STRING,
+    isSensitive: true,
+  })
+  @IsOptional()
+  SUNYIELD_HERMES_FEED_TOKEN: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.ADVANCED_SETTINGS,
+    description:
+      'SunYield Meta lead intake credentials, Page/form allowlists and field mappings as JSON',
+    type: ConfigVariableType.STRING,
+    isSensitive: true,
+    isHiddenInAdminPanel: true,
+  })
+  @IsOptional()
+  @IsString()
+  SUNYIELD_META_LEAD_CONFIG: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.ADVANCED_SETTINGS,
+    description:
+      'SunYield Google Ads webhook key, form allowlist and field mappings as JSON',
+    type: ConfigVariableType.STRING,
+    isSensitive: true,
+    isHiddenInAdminPanel: true,
+  })
+  @IsOptional()
+  @IsString()
+  SUNYIELD_GOOGLE_ADS_LEAD_CONFIG: string;
+
+  @ConfigVariablesMetadata({
+    group: ConfigVariablesGroup.EMAIL_SETTINGS,
     description: 'SMTP host for sending emails',
     type: ConfigVariableType.STRING,
   })

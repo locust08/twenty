@@ -1,3 +1,5 @@
+import { useSunyieldStatus } from '@/sunyield/hooks/useSunyieldStatus';
+import { SunyieldStatusInput } from '@/sunyield/components/SunyieldStatusInput';
 import { FieldInputEventContext } from '@/object-record/record-field/ui/contexts/FieldInputEventContext';
 import { useClearField } from '@/object-record/record-field/ui/hooks/useClearField';
 import { useAddSelectOption } from '@/object-record/record-field/ui/meta-types/hooks/useAddSelectOption';
@@ -10,7 +12,11 @@ import { useContext } from 'react';
 import { type SelectOption } from 'twenty-ui/primitives/input';
 
 export const SelectFieldInput = () => {
-  const { fieldDefinition, fieldValue } = useSelectField();
+  const { fieldDefinition, fieldValue, recordId } = useSelectField();
+  const sunyield = useSunyieldStatus({
+    recordId,
+    fieldMetadataId: fieldDefinition.fieldMetadataId,
+  });
   const { addSelectOption } = useAddSelectOption(
     fieldDefinition.fieldMetadataId,
   );
@@ -42,6 +48,15 @@ export const SelectFieldInput = () => {
   const handleSubmit = (option: SelectOption) => {
     onSubmit?.({ newValue: option.value });
   };
+
+  if (sunyield.isProtectedStatus)
+    return (
+      <SunyieldStatusInput
+        snapshot={sunyield.snapshot}
+        options={selectOptions}
+        onClose={() => onCancel?.()}
+      />
+    );
 
   return (
     <FieldInputDropdown value={fieldValue} onDismiss={handleCancel}>

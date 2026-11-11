@@ -1,3 +1,12 @@
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
+import { isLayoutCustomizationModeEnabledState } from '@/layout-customization/states/isLayoutCustomizationModeEnabledState';
+import { permissionFlagMapSelector } from '@/settings/roles/states/permissionFlagMapSelector';
+import { SUNYIELD_WORKSPACE_ID } from '@/sunyield/constants/SUNYIELD_WORKSPACE_ID';
+import {
+  arrangeSunyieldFields,
+  getSunyieldFieldOrder,
+} from '@/sunyield/utils/sunyieldLayout';
+import { PermissionFlagType } from '~/generated-metadata/graphql';
 import { objectMetadataItemsSelector } from '@/object-metadata/states/objectMetadataItemsSelector';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import { isActiveFieldMetadataItem } from '@/object-metadata/utils/isActiveFieldMetadataItem';
@@ -23,10 +32,50 @@ export const visibleRecordFieldsComponentSelector = createAtomComponentSelector<
 
       const objectMetadataItems = get(objectMetadataItemsSelector);
 
-      return filterVisibleAndReadableRecordFields(
-        currentRecordFields,
+      const enabled =
+        get(currentWorkspaceState)?.id === SUNYIELD_WORKSPACE_ID &&
+        !get(isLayoutCustomizationModeEnabledState);
+      const isAdmin = get(permissionFlagMapSelector)[
+        PermissionFlagType.WORKSPACE_MEMBERS
+      ];
+      const object = objectMetadataItems.find((item) =>
+        item.fields.some((field) =>
+          currentRecordFields.some(
+            (recordField) => recordField.fieldMetadataItemId === field.id,
+          ),
+        ),
+      );
+      const order =
+        enabled && object
+          ? getSunyieldFieldOrder(object.nameSingular, 'index', isAdmin)
+          : undefined;
+      const effectiveFields =
+        order && object
+          ? currentRecordFields.map((field) => ({
+              ...field,
+              isVisible: order.includes(
+                object.fields.find(
+                  (metadata) => metadata.id === field.fieldMetadataItemId,
+                )?.name ?? '',
+              ),
+            }))
+          : currentRecordFields;
+      const readable = filterVisibleAndReadableRecordFields(
+        effectiveFields,
         objectMetadataItems,
       );
+      return enabled && object
+        ? arrangeSunyieldFields(
+            readable,
+            (field) =>
+              object.fields.find(
+                (metadata) => metadata.id === field.fieldMetadataItemId,
+              )?.name ?? '',
+            object.nameSingular,
+            'index',
+            isAdmin,
+          )
+        : readable;
     },
 });
 

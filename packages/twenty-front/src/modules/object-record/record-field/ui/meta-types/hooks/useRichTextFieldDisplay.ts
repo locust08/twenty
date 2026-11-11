@@ -1,3 +1,7 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import { normalizeSunyieldTaskBody } from '@/sunyield/utils/normalizeSunyieldTaskBody';
+import { objectMetadataItemsSelector } from '@/object-metadata/states/objectMetadataItemsSelector';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useContext } from 'react';
 
 import { type FieldRichTextValue } from '@/object-record/record-field/ui/types/FieldMetadata';
@@ -24,8 +28,22 @@ export const useRichTextFieldDisplay = () => {
     fieldDefinition,
   );
 
+  const { enabled: isSunyield } = useSunyieldLayout();
+  const objectMetadataItems = useAtomStateValue(objectMetadataItemsSelector);
+  const isTaskBody = objectMetadataItems.some(
+    (object) =>
+      object.nameSingular === 'task' &&
+      object.fields.some(
+        (field) =>
+          field.id === fieldDefinition.fieldMetadataId &&
+          field.name === 'bodyV2',
+      ),
+  );
   return {
     fieldDefinition,
-    fieldValue,
+    fieldValue:
+      isSunyield && isTaskBody
+        ? normalizeSunyieldTaskBody(fieldValue)
+        : fieldValue,
   };
 };

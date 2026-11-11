@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { useLingui } from '@lingui/react/macro';
 import { WorkspaceActivationStatus } from 'twenty-shared/workspace';
 import {
@@ -29,6 +30,7 @@ export type NavigationDrawerMode = {
 
 export const useNavigationDrawerModes = (): NavigationDrawerMode[] => {
   const { t } = useLingui();
+  const { enabled: isSunyield } = useSunyieldLayout();
 
   const hasAiPermission = useHasPermissionFlag(PermissionFlagType.AI);
   const isAiChatInboxEnabled = useIsFeatureEnabled(
@@ -62,6 +64,7 @@ export const useNavigationDrawerModes = (): NavigationDrawerMode[] => {
 
   return NAVIGATION_DRAWER_MODE_ORDER.filter(
     (mode) =>
-      mode !== NAVIGATION_DRAWER_TABS.AI_CHAT_HISTORY || hasAiPermission,
+      mode !== NAVIGATION_DRAWER_TABS.AI_CHAT_HISTORY ||
+      (hasAiPermission && !isSunyield),
   ).map((mode) => ({ ...navigationDrawerModeDisplays[mode], mode }));
 };

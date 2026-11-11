@@ -1,0 +1,1 @@
+export const SUNYIELD_WORKSPACE_ID = 'e7e7d4f2-0f82-4a72-a12e-1f61494c61c6';

@@ -1,3 +1,5 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import { useSunyieldWhatsappAccess } from '@/sunyield/hooks/useSunyieldWhatsappAccess';
 import { SettingsPath } from 'twenty-shared/types';
 
 import { useAuth } from '@/auth/hooks/useAuth';
@@ -58,6 +60,8 @@ export type SettingsNavigationItem = {
 };
 
 const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
+  const { enabled: isSunyield } = useSunyieldLayout();
+  const canManageSunyieldWhatsapp = useSunyieldWhatsappAccess();
   const billing = useAtomStateValue(billingState);
   const { signOut } = useAuth();
   const supportChat = useAtomStateValue(supportChatState);
@@ -95,7 +99,9 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
           label: isAppPreferencesEnabled ? t`App preferences` : t`Accounts`,
           path: SettingsPath.Accounts,
           Icon: isAppPreferencesEnabled ? IconApps : IconAt,
-          isHidden: !permissionFlagMap[PermissionFlagType.CONNECTED_ACCOUNTS],
+          isHidden:
+            isSunyield ||
+            !permissionFlagMap[PermissionFlagType.CONNECTED_ACCOUNTS],
           subItems: isAppPreferencesEnabled
             ? undefined
             : [
@@ -104,6 +110,7 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
                   path: SettingsPath.AccountsEmails,
                   Icon: IconMail,
                   isHidden:
+                    isSunyield ||
                     !permissionFlagMap[PermissionFlagType.CONNECTED_ACCOUNTS],
                   indentationLevel: 2,
                 },
@@ -112,6 +119,7 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
                   path: SettingsPath.AccountsCalendars,
                   Icon: IconCalendarEvent,
                   isHidden:
+                    isSunyield ||
                     !permissionFlagMap[PermissionFlagType.CONNECTED_ACCOUNTS],
                   indentationLevel: 2,
                 },
@@ -178,13 +186,20 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
           label: t`AI`,
           path: SettingsPath.AI,
           Icon: IconSparkles,
-          isHidden: !permissionFlagMap[PermissionFlagType.AI_SETTINGS],
+          isHidden:
+            isSunyield || !permissionFlagMap[PermissionFlagType.AI_SETTINGS],
         },
         {
           label: t`Communication`,
           path: SettingsPath.WorkspaceCommunications,
           Icon: IconMessageCircle,
           isHidden: !permissionFlagMap[PermissionFlagType.WORKSPACE],
+        },
+        {
+          label: t`WhatsApp notifications`,
+          path: SettingsPath.SunyieldWhatsapp,
+          Icon: IconMessageCircle,
+          isHidden: !canManageSunyieldWhatsapp,
         },
       ],
     },

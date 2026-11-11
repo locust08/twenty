@@ -1,0 +1,15 @@
+{
+  "name": "sunyield-operations",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "start": "node src/main.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1161.0",
+    "bullmq": "5.81.5",
+    "ioredis": "5.11.1",
+    "pg": "8.23.1"
+  }
+}

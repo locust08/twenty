@@ -1,3 +1,4 @@
+import { useSunyieldStatus } from '@/sunyield/hooks/useSunyieldStatus';
 import { useObjectMetadataItems } from '@/object-metadata/hooks/useObjectMetadataItems';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import { type FieldMetadataItem } from '@/object-metadata/types/FieldMetadataItem';
@@ -62,6 +63,11 @@ export const RecordInlineCellAnchoredPortal = ({
     recordId: recordId ?? '',
   });
 
+  const sunyield = useSunyieldStatus({
+    recordId,
+    fieldMetadataId: fieldMetadataItem.id,
+  });
+
   const { objectPermissionsByObjectMetadataId } = useObjectPermissions();
   const { objectMetadataItems } = useObjectMetadataItems();
 
@@ -94,6 +100,15 @@ export const RecordInlineCellAnchoredPortal = ({
     return [updateEntity, { loading: false }];
   };
 
+  // The protected assignee already has a static display; a second hover layer can obscure it.
+  if (
+    sunyield.isSunyieldWorkspace &&
+    objectMetadataItem.nameSingular === 'task' &&
+    fieldMetadataItem.name === 'assignee' &&
+    isRecordFieldReadOnly
+  )
+    return null;
+
   if (!isDefined(anchorElement) || !isDefined(recordId)) {
     return null;
   }
@@ -115,7 +130,7 @@ export const RecordInlineCellAnchoredPortal = ({
           }),
           useUpdateRecord: useUpdateOneObjectRecordMutation,
           isDisplayModeFixHeight: true,
-          isRecordFieldReadOnly,
+          isRecordFieldReadOnly: isRecordFieldReadOnly && !sunyield.canEdit,
           isForbidden,
           onCloseEditMode,
         }}

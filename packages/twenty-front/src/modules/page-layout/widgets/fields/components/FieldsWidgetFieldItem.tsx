@@ -1,3 +1,4 @@
+import { useSunyieldStatus } from '@/sunyield/hooks/useSunyieldStatus';
 import { type FieldMetadataItem } from '@/object-metadata/types/FieldMetadataItem';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import { formatFieldMetadataItemAsColumnDefinition } from '@/object-metadata/utils/formatFieldMetadataItemAsColumnDefinition';
@@ -44,6 +45,10 @@ export const FieldsWidgetFieldItem = ({
   instanceId,
   onMouseEnter,
 }: FieldsWidgetFieldItemProps) => {
+  const sunyield = useSunyieldStatus({
+    recordId,
+    fieldMetadataId: fieldMetadataItem.id,
+  });
   const fieldDefinition = formatFieldMetadataItemAsColumnDefinition({
     field: fieldMetadataItem,
     position: globalIndex,
@@ -68,13 +73,14 @@ export const FieldsWidgetFieldItem = ({
         isDisplayModeFixHeight: true,
         isRecordFieldReadOnly:
           isFieldRestricted ||
-          isRecordFieldReadOnly({
-            isRecordReadOnly,
-            objectMetadataId: objectMetadataItem.id,
-            fieldMetadataItem,
-            fieldDefinition,
-            objectPermissionsByObjectMetadataId,
-          }),
+          (!sunyield.canEdit &&
+            isRecordFieldReadOnly({
+              isRecordReadOnly,
+              objectMetadataId: objectMetadataItem.id,
+              fieldMetadataItem,
+              fieldDefinition,
+              objectPermissionsByObjectMetadataId,
+            })),
         onMouseEnter,
         anchorId: `${getRecordFieldInputInstanceId({
           recordId,

@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { styled } from '@linaria/react';
 
 import {
@@ -55,8 +56,9 @@ export const RecordTableAggregateFooter = ({
 }) => {
   const { visibleRecordFields } = useRecordTableContextOrThrow();
   const isMobile = useIsMobile();
+  const { enabled: isSunyield, isAdmin } = useSunyieldLayout();
 
-  if (isMobile) {
+  if (isMobile || (isSunyield && !isAdmin)) {
     return null;
   }
 

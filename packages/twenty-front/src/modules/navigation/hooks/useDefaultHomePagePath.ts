@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { currentUserState } from '@/auth/states/currentUserState';
 import { metadataStoreState } from '@/metadata-store/states/metadataStoreState';
 import { metadataStoreStatusFamilySelector } from '@/metadata-store/states/metadataStoreStatusFamilySelector';
@@ -21,6 +22,7 @@ import { getAppPath, getSettingsPath, isDefined } from 'twenty-shared/utils';
 
 export const useDefaultHomePagePath = () => {
   const currentUser = useAtomStateValue(currentUserState);
+  const { enabled: isSunyield } = useSunyieldLayout();
   const isMobile = useIsMobile();
   const { objectPermissionsByObjectMetadataId } = useObjectPermissions();
   const metadataStore = useAtomFamilyStateValue(
@@ -98,13 +100,27 @@ export const useDefaultHomePagePath = () => {
       return AppPath.SignInUp;
     }
 
-    if (isMobile) {
+    if (isMobile && !isSunyield) {
       return AppPath.Home;
     }
 
     // Both stores are empty right after login; deciding now would pick a wrong fallback.
     if (!areObjectMetadataItemsLoaded || !areNavigationMenuItemsLoaded) {
       return AppPath.Index;
+    }
+
+    const lead = isSunyield
+      ? readableNonSystemObjectMetadataItems.find(
+          (object) => object.nameSingular === 'lead',
+        )
+      : undefined;
+    if (lead) {
+      const viewId = getTargetViewId(lead.id);
+      return getAppPath(
+        AppPath.RecordIndexPage,
+        { objectNamePlural: lead.namePlural },
+        isDefined(viewId) ? { viewId } : undefined,
+      );
     }
 
     if (isEmpty(readableNonSystemObjectMetadataItems)) {
@@ -129,6 +145,8 @@ export const useDefaultHomePagePath = () => {
   }, [
     currentUser,
     isMobile,
+    isSunyield,
+    getTargetViewId,
     readableNonSystemObjectMetadataItems,
     areObjectMetadataItemsLoaded,
     areNavigationMenuItemsLoaded,

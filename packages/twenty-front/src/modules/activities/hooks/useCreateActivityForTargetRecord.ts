@@ -1,3 +1,4 @@
+import { useSunyieldRecordAccess } from '@/sunyield/hooks/useSunyieldRecordAccess';
 import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
 import { isObjectMetadataReadOnly } from '@/object-record/read-only/utils/isObjectMetadataReadOnly';
 import { useOpenCreateActivityDrawer } from '@/activities/hooks/useOpenCreateActivityDrawer';
@@ -23,6 +24,11 @@ export const useCreateActivityForTargetRecord = ({
   const { canUpdateObjectRecords } = useCanUpdateObjectRecords(
     targetRecord.targetObjectNameSingular,
   );
+  const sunyieldAccess = useSunyieldRecordAccess(
+    targetRecord.targetObjectNameSingular,
+    targetRecord.id,
+    targetRecord.targetObjectNameSingular === 'lead' && !canUpdateObjectRecords,
+  );
 
   const openCreateActivityDrawer = useOpenCreateActivityDrawer({
     activityObjectNameSingular,
@@ -33,7 +39,9 @@ export const useCreateActivityForTargetRecord = ({
 
   return {
     canCreateActivity:
-      canUpdateObjectRecords &&
+      (canUpdateObjectRecords ||
+        (targetRecord.targetObjectNameSingular === 'lead' &&
+          sunyieldAccess?.canEdit === true)) &&
       !isObjectMetadataReadOnly({ objectMetadataItem }),
     createActivity,
   };

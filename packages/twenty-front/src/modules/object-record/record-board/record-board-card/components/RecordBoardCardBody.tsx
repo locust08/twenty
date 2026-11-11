@@ -20,6 +20,7 @@ import { useAtomComponentSelectorValue } from '@/ui/utilities/state/jotai/hooks/
 import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState';
 import { useContext } from 'react';
 import { isDefined } from 'twenty-shared/utils';
+import { SunyieldBoardFieldTooltip } from '@/sunyield/components/SunyieldBoardFieldTooltip';
 
 export const RecordBoardCardBody = () => {
   const { recordId, isRecordReadOnly, isDragOverlay } = useContext(
@@ -123,9 +124,15 @@ export const RecordBoardCardBody = () => {
                   }),
                 }}
               >
-                <RecordInlineCell
-                  instanceIdPrefix={RECORD_BOARD_CARD_INPUT_ID_PREFIX}
-                />
+                <SunyieldBoardFieldTooltip
+                  objectName={objectMetadataItem.nameSingular}
+                  fieldName={fieldMetadataItem.name}
+                  label={correspondingFieldDefinition.label}
+                >
+                  <RecordInlineCell
+                    instanceIdPrefix={RECORD_BOARD_CARD_INPUT_ID_PREFIX}
+                  />
+                </SunyieldBoardFieldTooltip>
               </RecordFieldComponentInstanceContext.Provider>
             </FieldContext.Provider>
           </StopPropagationContainer>

@@ -1,3 +1,4 @@
+import { useSunyieldVisibilityRefresh } from '@/sunyield/hooks/useSunyieldVisibilityRefresh';
 import { dispatchBrowserEvent } from '@/browser-event/utils/dispatchBrowserEvent';
 import { dispatchQueueJobEventsFromSseToBrowserEvents } from '@/sse-db-event/utils/dispatchQueueJobEventsFromSseToBrowserEvents';
 import { SSE_CLIENT_RECONNECTED_EVENT_NAME } from '@/sse-db-event/constants/SseClientReconnectedEventName';
@@ -29,6 +30,7 @@ import { type EventSubscription } from '~/generated-metadata/graphql';
 import { getGraphqlErrorExtensionsFromError } from '~/utils/get-graphql-error-extensions-from-error.util';
 
 export const useTriggerEventStreamCreation = () => {
+  const refreshSunyieldVisibility = useSunyieldVisibilityRefresh();
   const store = useStore();
   const setIsCreatingSseEventStream = useSetAtomState(
     isCreatingSseEventStreamState,
@@ -87,6 +89,7 @@ export const useTriggerEventStreamCreation = () => {
       store.set(sseEventStreamReadyState.atom, true);
 
       if (isRecreatedEventStream) {
+        void refreshSunyieldVisibility();
         dispatchBrowserEvent(SSE_CLIENT_RECONNECTED_EVENT_NAME);
       }
     };
@@ -139,6 +142,17 @@ export const useTriggerEventStreamCreation = () => {
             const objectRecordEventsWithQueryIds =
               eventSubscription?.objectRecordEventsWithQueryIds ?? [];
 
+            if (
+              objectRecordEventsWithQueryIds.some(
+                (item) =>
+                  item.objectRecordEvent.objectNameSingular ===
+                  '__sunyieldRefresh',
+              )
+            ) {
+              void refreshSunyieldVisibility();
+              return;
+            }
+
             const metadataEvents = eventSubscription?.metadataEvents ?? [];
 
             const queueJobEvents = eventSubscription?.queueJobEvents ?? [];
@@ -187,6 +201,7 @@ export const useTriggerEventStreamCreation = () => {
 
     setIsCreatingSseEventStream(false);
   }, [
+    refreshSunyieldVisibility,
     dispatchMetadataEventsFromSseToBrowserEvents,
     dispatchObjectRecordEventsFromSseToBrowserEvents,
     setIsCreatingSseEventStream,

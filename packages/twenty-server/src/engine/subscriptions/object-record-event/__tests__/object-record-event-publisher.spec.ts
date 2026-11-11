@@ -374,6 +374,44 @@ describe('ObjectRecordEventPublisher', () => {
   });
 
   describe('publish', () => {
+    it('replaces Sunyield snapshots and unrelated nested relations with an opaque refresh', async () => {
+      await service.publish({
+        workspaceId: 'e7e7d4f2-0f82-4a72-a12e-1f61494c61c6',
+        name: 'lead.updated',
+        objectMetadata: companyObjectMetadata,
+        events: [
+          {
+            recordId: 'private-lead',
+            userId: 'private-user',
+            properties: {
+              after: { name: 'Private customer', phone: 'Private number' },
+            },
+          },
+        ],
+      });
+      const sent =
+        mockSubscriptionService.publishToEventStream.mock.calls[0][0];
+      expect(sent.payload).toMatchObject({
+        metadataEvents: [],
+        objectRecordEventsWithQueryIds: [
+          {
+            queryIds: [],
+            objectRecordEvent: {
+              objectNameSingular: '__sunyieldRefresh',
+              properties: { after: {} },
+            },
+          },
+        ],
+      });
+      expect(JSON.stringify(sent)).not.toMatch(
+        /private-lead|private-user|Private customer|Private number/,
+      );
+      expect(mockWorkspaceCacheService.getOrRecompute).not.toHaveBeenCalled();
+      expect(
+        mockProcessNestedRelationsHelper.processNestedRelations,
+      ).not.toHaveBeenCalled();
+    });
+
     it('should skip publishing to event streams when no active streams exist', async () => {
       mockEventStreamService.getActiveStreamIds.mockResolvedValue([]);
 

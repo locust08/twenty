@@ -1,3 +1,5 @@
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
+import { mockCurrentWorkspace } from '~/testing/mock-data/users';
 import { useActiveNavigationDrawerMode } from '@/navigation/hooks/useActiveNavigationDrawerMode';
 import { navigationDrawerActiveTabState } from '@/ui/navigation/states/navigationDrawerActiveTabState';
 import {
@@ -12,11 +14,18 @@ import { MemoryRouter } from 'react-router-dom';
 const renderActiveNavigationDrawerMode = ({
   pathname,
   activeTab = NAVIGATION_DRAWER_TABS.NAVIGATION_MENU,
+  isSunyield = false,
 }: {
   pathname: string;
   activeTab?: NavigationDrawerActiveTab;
+  isSunyield?: boolean;
 }) => {
   const store = createStore();
+  if (isSunyield)
+    store.set(currentWorkspaceState.atom, {
+      ...mockCurrentWorkspace,
+      id: 'e7e7d4f2-0f82-4a72-a12e-1f61494c61c6',
+    });
 
   store.set(navigationDrawerActiveTabState.atom, activeTab);
 
@@ -71,4 +80,13 @@ describe('useActiveNavigationDrawerMode', () => {
 
     expect(result.current).toBe(NAVIGATION_DRAWER_TABS.NAVIGATION_MENU);
   });
+});
+
+it('returns SunYield to its navigation when an old AI tab is stored', () => {
+  const { result } = renderActiveNavigationDrawerMode({
+    pathname: '/objects/leads',
+    activeTab: NAVIGATION_DRAWER_TABS.AI_CHAT_HISTORY,
+    isSunyield: true,
+  });
+  expect(result.current).toBe(NAVIGATION_DRAWER_TABS.NAVIGATION_MENU);
 });

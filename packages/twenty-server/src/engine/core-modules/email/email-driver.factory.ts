@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { type EmailDriverInterface } from 'src/engine/core-modules/email/drivers/interfaces/email-driver.interface';
 
 import { LoggerDriver } from 'src/engine/core-modules/email/drivers/logger.driver';
+import { ResendDriver } from 'src/engine/core-modules/email/drivers/resend.driver';
 import { SmtpDriver } from 'src/engine/core-modules/email/drivers/smtp.driver';
 import { EmailDriver } from 'src/engine/core-modules/email/enums/email-driver.enum';
 import { DriverFactoryBase } from 'src/engine/core-modules/twenty-config/dynamic-factory.base';
@@ -26,6 +27,10 @@ export class EmailDriverFactory extends DriverFactoryBase<EmailDriverInterface> 
       return 'logger';
     }
 
+    if (driver === EmailDriver.RESEND) {
+      return `resend|${this.configGroupHashService.computeHash(ConfigVariablesGroup.EMAIL_SETTINGS)}`;
+    }
+
     if (driver === EmailDriver.SMTP) {
       const emailConfigHash = this.configGroupHashService.computeHash(
         ConfigVariablesGroup.EMAIL_SETTINGS,
@@ -41,6 +46,11 @@ export class EmailDriverFactory extends DriverFactoryBase<EmailDriverInterface> 
     const driver = this.twentyConfigService.get('EMAIL_DRIVER');
 
     switch (driver) {
+      case EmailDriver.RESEND:
+        return new ResendDriver(
+          this.twentyConfigService.get('EMAIL_RESEND_API_KEY'),
+        );
+
       case EmailDriver.LOGGER:
         return new LoggerDriver();
 

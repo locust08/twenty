@@ -1,3 +1,4 @@
+import { SettingsSunyieldWhatsapp } from '~/pages/settings/sunyield/SettingsSunyieldWhatsapp';
 import { lazy, Suspense } from 'react';
 import {
   createRoutesFromElements,
@@ -857,6 +858,7 @@ const createSettingsRouteElements = ({
       }
     >
       <Route path={SettingsPath.General} element={<SettingsGeneral />} />
+      <Route path={SettingsPath.SunyieldWhatsapp} element={<SettingsSunyieldWhatsapp />} />
       <Route
         path={SettingsPath.WorkspaceCommunications}
         element={<SettingsWorkspaceCommunications />}

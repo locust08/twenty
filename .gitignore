@@ -70,3 +70,15 @@ screenshots/
 /.diag*.mjs
 /.compare*.mjs
 /.narrow*.mjs
+
+/tmp/sunyield-mapping/
+/tmp/sunyield-mapping-release/
+
+# Private Hermes build and verification scratch
+tmp/sunyield-hermes/
+/tmp/sunyield-owned-management/
+
+# Private operational scratch and authentication state
+/tmp/
+/docs/superpowers/
+**/auth_info_baileys/

@@ -1,3 +1,4 @@
+import { useSunyieldStatus } from '@/sunyield/hooks/useSunyieldStatus';
 import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
 import { formatFieldMetadataItemAsColumnDefinition } from '@/object-metadata/utils/formatFieldMetadataItemAsColumnDefinition';
 import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
@@ -72,6 +73,11 @@ export const FieldContextProvider = ({
     objectMetadataId: objectMetadataItem.id,
   });
 
+  const sunyield = useSunyieldStatus({
+    recordId: objectRecordId,
+    fieldMetadataId: fieldMetadataItem?.id ?? '',
+  });
+
   if (!fieldMetadataItem) {
     return null;
   }
@@ -93,7 +99,7 @@ export const FieldContextProvider = ({
           customUseUpdateOneObjectHook ?? useUpdateOneObjectMutation,
         clearable,
         overridenIsFieldEmpty,
-        isRecordFieldReadOnly,
+        isRecordFieldReadOnly: isRecordFieldReadOnly && !sunyield.canEdit,
         onMouseEnter,
         anchorId,
         maxWidth,

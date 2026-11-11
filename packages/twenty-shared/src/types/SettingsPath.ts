@@ -1,4 +1,5 @@
 export enum SettingsPath {
+  SunyieldWhatsapp = 'sunyield-whatsapp',
   ProfilePage = 'profile',
   TwoFactorAuthenticationStrategyConfig = 'profile/two-factor-authentication/:twoFactorAuthenticationStrategy',
   Experience = 'experience',

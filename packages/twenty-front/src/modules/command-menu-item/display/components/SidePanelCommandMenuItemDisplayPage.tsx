@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { COMMAND_MENU_ITEM_SECTIONS_IN_DISPLAY_ORDER } from '@/command-menu-item/constants/CommandMenuItemSectionsInDisplayOrder';
 import { COMMAND_MENU_ASK_AI_FALLBACK_ITEM_ID } from '@/command-menu-item/constants/CommandMenuAskAiFallbackItemId';
 import { CommandMenuContext } from '@/command-menu-item/contexts/CommandMenuContext';
@@ -75,6 +76,7 @@ export const SidePanelCommandMenuItemDisplayPage = () => {
     useCommandMenuItemCurrentViewSectionContext();
   const objectSectionContext = useCommandMenuItemObjectSectionContext();
   const workspaceSectionContext = useCommandMenuItemWorkspaceSectionContext();
+  const { enabled: isSunyield } = useSunyieldLayout();
   const hasAiPermission = useHasPermissionFlag(PermissionFlagType.AI);
 
   const { filterCommandMenuItemsWithSidePanelSearch } =
@@ -180,7 +182,8 @@ export const SidePanelCommandMenuItemDisplayPage = () => {
     coreObjectCommandIds.length === 0 &&
     coreSelectionCommandIds.length === 0;
 
-  const shouldDisplayAskAiFallbackItem = isSearchActive && hasAiPermission;
+  const shouldDisplayAskAiFallbackItem =
+    isSearchActive && hasAiPermission && !isSunyield;
 
   const shouldDisplayFallbackItems =
     hasNoMatchingItems &&

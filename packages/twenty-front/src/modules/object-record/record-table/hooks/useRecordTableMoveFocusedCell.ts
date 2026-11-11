@@ -1,3 +1,5 @@
+import { visibleRecordFieldsComponentSelector } from '@/object-record/record-field/states/visibleRecordFieldsComponentSelector';
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { useCallback } from 'react';
 
 import { type MoveFocusDirection } from '@/object-record/record-table/types/MoveFocusDirection';
@@ -25,6 +27,11 @@ export const useRecordTableMoveFocusedCell = (recordTableId?: string) => {
   );
 
   const store = useStore();
+  const { enabled: isSunyield } = useSunyieldLayout();
+  const visibleRecordFields = useAtomComponentSelectorCallbackState(
+    visibleRecordFieldsComponentSelector,
+    recordTableId,
+  );
 
   const moveUp = useCallback(() => {
     const currentFocusPosition = store.get(focusPosition);
@@ -79,7 +86,9 @@ export const useRecordTableMoveFocusedCell = (recordTableId?: string) => {
       return;
     }
 
-    const numberOfRecordFields = store.get(currentRecordFields).length;
+    const numberOfRecordFields = isSunyield
+      ? store.get(visibleRecordFields).length
+      : store.get(currentRecordFields).length;
 
     const currentColumnIndex = currentFocusPosition.column;
     const currentRowIndex = currentFocusPosition.row;
@@ -114,6 +123,8 @@ export const useRecordTableMoveFocusedCell = (recordTableId?: string) => {
     store,
     focusPosition,
     currentRecordFields,
+    visibleRecordFields,
+    isSunyield,
     focusRecordTableCell,
   ]);
 
@@ -124,7 +135,9 @@ export const useRecordTableMoveFocusedCell = (recordTableId?: string) => {
       return;
     }
 
-    const numberOfRecordFields = store.get(currentRecordFields).length;
+    const numberOfRecordFields = isSunyield
+      ? store.get(visibleRecordFields).length
+      : store.get(currentRecordFields).length;
 
     const currentColumnIndex = currentFocusPosition.column;
     const currentRowIndex = currentFocusPosition.row;
@@ -152,7 +165,14 @@ export const useRecordTableMoveFocusedCell = (recordTableId?: string) => {
         column: numberOfRecordFields - 1,
       });
     }
-  }, [currentRecordFields, focusPosition, focusRecordTableCell, store]);
+  }, [
+    currentRecordFields,
+    visibleRecordFields,
+    isSunyield,
+    focusPosition,
+    focusRecordTableCell,
+    store,
+  ]);
 
   const moveFocus = (direction: MoveFocusDirection) => {
     switch (direction) {

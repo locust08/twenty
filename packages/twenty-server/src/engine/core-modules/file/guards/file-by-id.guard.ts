@@ -1,3 +1,6 @@
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { authorizeSunyieldFile } from 'src/modules/sunyield/permissions/sunyield-file-access';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 
 import { FileFolder } from 'twenty-shared/types';
@@ -33,6 +36,7 @@ export class FileByIdGuard implements CanActivate {
   constructor(
     private readonly jwtWrapperService: JwtWrapperService,
     private readonly coreEntityCacheService: CoreEntityCacheService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -67,6 +71,18 @@ export class FileByIdGuard implements CanActivate {
         json: true,
       },
     );
+
+    if (fileFolder === FileFolder.FilesField) {
+      try {
+        await authorizeSunyieldFile(
+          decodedPayload.workspaceId,
+          decodedPayload.sunyieldFileIdentity,
+          (sql, parameters) => this.dataSource.query(sql, parameters),
+        );
+      } catch {
+        return false;
+      }
+    }
 
     request.workspaceId = decodedPayload.workspaceId;
 

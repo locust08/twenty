@@ -1,3 +1,9 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import {
+  arrangeSunyieldFields,
+  getSunyieldFieldOrder,
+} from '@/sunyield/utils/sunyieldLayout';
+import { useIsPageLayoutInEditMode } from '@/page-layout/hooks/useIsPageLayoutInEditMode';
 import { useObjectMetadataItem } from '@/object-metadata/hooks/useObjectMetadataItem';
 import { RecordFieldListComponentInstanceContext } from '@/object-record/record-field-list/states/contexts/RecordFieldListComponentInstanceContext';
 import { FieldDescriptionTooltipProvider } from '@/object-record/record-field/ui/components/FieldDescriptionTooltipProvider';
@@ -59,28 +65,88 @@ export const FieldsWidget = ({ widget }: FieldsWidgetProps) => {
 
   const fieldsConfiguration = widget.configuration as FieldsConfiguration;
 
-  const { groups, displayMode } = useFieldsWidgetGroupsForDisplay({
-    widgetId: widget.id,
-    viewId: fieldsConfiguration.viewId ?? null,
-    objectNameSingular: targetRecord.targetObjectNameSingular,
-  });
+  const { groups: configuredGroups, displayMode: configuredDisplayMode } =
+    useFieldsWidgetGroupsForDisplay({
+      widgetId: widget.id,
+      viewId: fieldsConfiguration.viewId ?? null,
+      objectNameSingular: targetRecord.targetObjectNameSingular,
+    });
 
-  const { hiddenFields } = useFieldsWidgetHiddenFieldsForDisplay({
-    widgetId: widget.id,
-    viewId: fieldsConfiguration.viewId ?? null,
-    objectNameSingular: targetRecord.targetObjectNameSingular,
-  });
+  const { hiddenFields: configuredHiddenFields } =
+    useFieldsWidgetHiddenFieldsForDisplay({
+      widgetId: widget.id,
+      viewId: fieldsConfiguration.viewId ?? null,
+      objectNameSingular: targetRecord.targetObjectNameSingular,
+    });
 
+  const { enabled: isSunyield, isAdmin } = useSunyieldLayout();
+  const isPageLayoutInEditMode = useIsPageLayoutInEditMode();
+  const objectName = targetRecord.targetObjectNameSingular;
+  const useDailyLayout =
+    isSunyield &&
+    !isPageLayoutInEditMode &&
+    ['lead', 'salesperson'].includes(objectName);
+  const configuredFields = configuredGroups.flatMap((group) => group.fields);
+  const availableFields = [
+    ...configuredFields,
+    ...configuredHiddenFields,
+  ].filter(
+    (field, index, fields) =>
+      fields.findIndex(
+        (other) => other.fieldMetadataItem.id === field.fieldMetadataItem.id,
+      ) === index,
+  );
+  const dailyFields = arrangeSunyieldFields(
+    availableFields,
+    (field) => field.fieldMetadataItem.name,
+    objectName,
+    'details',
+    isAdmin,
+  ).map((field, index) => ({
+    ...field,
+    globalIndex: index,
+    fieldMetadataItem:
+      field.fieldMetadataItem.name === 'rawPhone'
+        ? { ...field.fieldMetadataItem, label: t`Customer phone` }
+        : field.fieldMetadataItem,
+  }));
+  const groups = useDailyLayout
+    ? [
+        {
+          id: `${widget.id}-daily`,
+          name: t`General`,
+          position: 0,
+          isVisible: true,
+          fields: dailyFields,
+        },
+      ]
+    : configuredGroups;
+  const displayMode = useDailyLayout ? 'inline' : configuredDisplayMode;
+  const primaryNames =
+    getSunyieldFieldOrder(objectName, 'details', isAdmin) ?? [];
+  const hiddenFields = useDailyLayout
+    ? availableFields.filter(
+        (field, index, fields) =>
+          !primaryNames.includes(field.fieldMetadataItem.name) &&
+          !['owner', 'phone'].includes(field.fieldMetadataItem.name) &&
+          fields.findIndex(
+            (other) =>
+              other.fieldMetadataItem.id === field.fieldMetadataItem.id,
+          ) === index,
+      )
+    : configuredHiddenFields;
   const shouldShowHiddenFields =
-    fieldsConfiguration.shouldAllowUserToSeeHiddenFields === true &&
+    (useDailyLayout ||
+      fieldsConfiguration.shouldAllowUserToSeeHiddenFields === true) &&
     hiddenFields.length > 0;
 
   const visibleFields = groups.flatMap((group) => group.fields);
 
   const hiddenFieldsWithOffsetGlobalIndex = shouldShowHiddenFields
-    ? hiddenFields.map((field) => ({
+    ? hiddenFields.map((field, index) => ({
         ...field,
-        globalIndex: field.globalIndex + visibleFields.length,
+        globalIndex:
+          (useDailyLayout ? index : field.globalIndex) + visibleFields.length,
       }))
     : [];
 
@@ -146,7 +212,11 @@ export const FieldsWidget = ({ widget }: FieldsWidgetProps) => {
 
           {shouldShowHiddenFields && (
             <FieldsWidgetGroupContainer
-              title={t`More (${hiddenFieldsWithOffsetGlobalIndex.length})`}
+              title={
+                useDailyLayout
+                  ? t`Details (${hiddenFieldsWithOffsetGlobalIndex.length})`
+                  : t`More (${hiddenFieldsWithOffsetGlobalIndex.length})`
+              }
               defaultExpanded={false}
             >
               <StyledPropertyBox>

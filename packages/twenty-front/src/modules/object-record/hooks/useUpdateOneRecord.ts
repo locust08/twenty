@@ -1,3 +1,4 @@
+import { useSunyieldManagement } from '@/sunyield/hooks/useSunyieldManagement';
 import { triggerUpdateRecordOptimisticEffect } from '@/apollo/optimistic-effect/utils/triggerUpdateRecordOptimisticEffect';
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { dispatchObjectRecordOperationBrowserEvent } from '@/browser-event/utils/dispatchObjectRecordOperationBrowserEvent';
@@ -35,6 +36,7 @@ type UpdateOneRecordArgs<UpdatedObjectRecord> = {
 };
 
 export const useUpdateOneRecord = () => {
+  const sunyieldManagement = useSunyieldManagement();
   const apolloCoreClient = useApolloCoreClient();
   const { upsertRecordsInStore } = useUpsertRecordsInStore();
 
@@ -64,6 +66,15 @@ export const useUpdateOneRecord = () => {
         ),
       );
     }
+
+    const managedRecord = await sunyieldManagement.update(
+      objectNameSingular,
+      idToUpdate,
+      updateOneRecordInput,
+      objectPermissionsByObjectMetadataId[objectMetadataItem.id]
+        ?.canUpdateObjectRecords === true,
+    );
+    if (managedRecord) return managedRecord;
 
     const optimisticRecordInput =
       optimisticRecord ??

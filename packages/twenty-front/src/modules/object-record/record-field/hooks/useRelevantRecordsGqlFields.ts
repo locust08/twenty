@@ -1,3 +1,6 @@
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
+import { getSunyieldStatusGqlFields } from '@/sunyield/utils/getSunyieldStatusGqlFields';
 import { type RecordGqlFields } from 'twenty-shared/types';
 import { useObjectMetadataItems } from '@/object-metadata/hooks/useObjectMetadataItems';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
@@ -25,6 +28,7 @@ export const useRelevantRecordsGqlFields = ({
   objectMetadataItem,
   additionalFieldMetadataIds = [],
 }: UseRecordsUsefulGqlFields): RecordGqlFields => {
+  const currentWorkspace = useAtomStateValue(currentWorkspaceState);
   const visibleRecordFields = useAtomComponentSelectorValue(
     visibleRecordFieldsComponentSelector,
   );
@@ -102,6 +106,7 @@ export const useRelevantRecordsGqlFields = ({
       : {}),
     ...(hasPosition ? { position: true } : {}),
     ...allDepthOneGqlFields,
+    ...getSunyieldStatusGqlFields(currentWorkspace?.id, objectMetadataItem.id),
     ...coreRecordReferenceFieldsRecordGqlFields,
     createdAt: true,
     updatedAt: true,

@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { useLocation } from 'react-router-dom';
 
 import { useIsSettingsDrawer } from '@/navigation/hooks/useIsSettingsDrawer';
@@ -12,6 +13,7 @@ import { isAiModePath } from '~/utils/isAiModePath';
 // Settings, AI chat and inbox pages decide their mode; elsewhere the stored tab wins so chat history stays listed.
 export const useActiveNavigationDrawerMode = (): NavigationDrawerActiveTab => {
   const { pathname } = useLocation();
+  const { enabled: isSunyield } = useSunyieldLayout();
   const isSettingsDrawer = useIsSettingsDrawer();
   const navigationDrawerActiveTab = useAtomStateValue(
     navigationDrawerActiveTabState,
@@ -20,6 +22,8 @@ export const useActiveNavigationDrawerMode = (): NavigationDrawerActiveTab => {
   if (isSettingsDrawer) {
     return NAVIGATION_DRAWER_TABS.SETTINGS;
   }
+
+  if (isSunyield) return NAVIGATION_DRAWER_TABS.NAVIGATION_MENU;
 
   if (
     isAiModePath(pathname) ||

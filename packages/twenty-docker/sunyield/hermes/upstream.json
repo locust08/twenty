@@ -1,0 +1,23 @@
+{
+  "commit": "29a61cb7ab509cda0c376bf3860edb87210b0755",
+  "files": {
+    "allowlist.js": "ac7b015ddbb2bfdfcb652d3c414dc626edcf62691740513916c5252a3487f27e",
+    "allowlist.test.mjs": "a5b0ce8f5ec9105b23c0ff21881648c85e6c4ee66c58b59554484d52513b1582",
+    "bridge.js": "a955403f3f69907ca85e0b98c04e1d635a0b84ca80d94e1056820db2301d5b71",
+    "bridge.native.test.mjs": "138c9f6f4cd2988b3ec04d69bcf4fe65f559b6b4b7b6146fab5b5d0de089b6d0",
+    "bridge.reconnect.test.mjs": "1d050d2fce442a4235ee5bef7ee1689be11164128d35a20426583042a9b34304",
+    "bridge_helpers.js": "e1e26a7f21c7f09af2113fd612e5bace8e7d3ba34ef032ac5823710cdd5938d0",
+    "bridge_helpers.timestamp.test.mjs": "424669ada032c6081fa9029d00af63957c03580824280a3cccd2fbda762d932c",
+    "delivery_status.test.mjs": "751033afb4d2df01c80e8af0869a3bd30a4859aaf0d301ac5d8823d47876915e",
+    "outbound_ids.js": "d022374c0a055eb4b8b60232ee4a6b1c749b78fe828e0b67bcb864e2917d8680",
+    "outbound_ids.test.mjs": "af68bbe2343768ad53be7d50eb0a61a763d367bb831fc8922da6ea6a09d32dfb",
+    "owner_message_gate.js": "c1388cfa100d662ca04bca72e003e94c5ec56d87288a7a27ccbbaf6bd8b5f8af",
+    "owner_message_gate.test.mjs": "b362a3cbd4fe2a508fd98403bd4a85e1ac219fc99b3f81297ae7ad7f9f1d3261",
+    "package-lock.json": "65375304d07a1eab0f4d2d0ddd7611b21e700f3c3bedd0cc490030aafb99bbce",
+    "package.json": "c22fc1a05de316eb1ffe68e8eba7261ef2edcf1c7dd2f6ffe892020f637ce9fe"
+  },
+  "license": {
+    "path": "LICENSE",
+    "sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6"
+  }
+}

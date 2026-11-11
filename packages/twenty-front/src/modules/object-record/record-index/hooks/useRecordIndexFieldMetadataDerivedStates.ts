@@ -1,3 +1,5 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import { t } from '@lingui/core/macro';
 import { labelIdentifierFieldMetadataItemSelector } from '@/object-metadata/states/labelIdentifierFieldMetadataItemSelector';
 import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import { formatFieldMetadataItemAsColumnDefinition } from '@/object-metadata/utils/formatFieldMetadataItemAsColumnDefinition';
@@ -10,7 +12,14 @@ export const useRecordIndexFieldMetadataDerivedStates = (
   objectMetadataItem: EnrichedObjectMetadataItem | undefined,
   recordIndexId?: string | undefined,
 ) => {
-  const fieldMetadataItems = objectMetadataItem?.fields ?? [];
+  const { enabled: isSunyield } = useSunyieldLayout();
+  const fieldMetadataItems = (objectMetadataItem?.fields ?? []).map((field) =>
+    isSunyield &&
+    objectMetadataItem?.nameSingular === 'lead' &&
+    field.name === 'rawPhone'
+      ? { ...field, label: t`Customer phone` }
+      : field,
+  );
 
   const fieldMetadataItemByFieldMetadataItemId = Object.fromEntries(
     fieldMetadataItems.map((fieldMetadataItem) => [

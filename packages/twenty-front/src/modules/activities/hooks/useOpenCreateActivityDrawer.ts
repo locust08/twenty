@@ -1,3 +1,4 @@
+import { useCreateSunyieldActivity } from '@/sunyield/hooks/useCreateSunyieldActivity';
 import { activityTargetableEntityArrayState } from '@/activities/states/activityTargetableEntityArrayState';
 import { CoreObjectNameSingular } from 'twenty-shared/types';
 import { type WorkspaceMember } from '@/workspace-member/types/WorkspaceMember';
@@ -22,6 +23,7 @@ export const useOpenCreateActivityDrawer = ({
     | CoreObjectNameSingular.Note
     | CoreObjectNameSingular.Task;
 }) => {
+  const sunyield = useCreateSunyieldActivity(activityObjectNameSingular);
   const { createOneRecord: createOneActivity } = useCreateOneRecord<
     (Task | Note) & { position: 'first' | 'last' }
   >({
@@ -56,6 +58,17 @@ export const useOpenCreateActivityDrawer = ({
     targetableObjects: ActivityTargetableObject[];
     customAssignee?: WorkspaceMember;
   }) => {
+    if (sunyield.protectedCreate) {
+      const activity = await sunyield.create(targetableObjects);
+      setActivityTargetableEntityArray(targetableObjects);
+      openRecordInSidePanel({
+        recordId: activity.id,
+        objectNameSingular: activityObjectNameSingular,
+        isNewRecord: true,
+      });
+      setIsUpsertingActivityInDB(false);
+      return;
+    }
     const activity = await createOneActivity({
       ...(activityObjectNameSingular === CoreObjectNameSingular.Task
         ? {

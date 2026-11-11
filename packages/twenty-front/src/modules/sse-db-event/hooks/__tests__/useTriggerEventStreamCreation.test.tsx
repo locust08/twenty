@@ -37,6 +37,10 @@ jest.mock(
   }),
 );
 
+jest.mock('@/sunyield/hooks/useSunyieldVisibilityRefresh', () => ({
+  useSunyieldVisibilityRefresh: () => jest.fn(),
+}));
+
 const buildSseClientCompletingAfterDispose = () => {
   const completeSubscriptionCallbacks: (() => void)[] = [];
 

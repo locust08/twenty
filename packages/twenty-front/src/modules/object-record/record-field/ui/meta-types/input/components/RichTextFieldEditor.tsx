@@ -1,3 +1,8 @@
+import { normalizeSunyieldTaskBody } from '@/sunyield/utils/normalizeSunyieldTaskBody';
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
+import { SUNYIELD_WORKSPACE_ID } from '@/sunyield/hooks/useSunyieldRecordAccess';
+import { useObjectPermissionsForObject } from '@/object-record/hooks/useObjectPermissionsForObject';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useCallback } from 'react';
 import { useAtom, useStore } from 'jotai';
 
@@ -76,6 +81,15 @@ export const RichTextFieldEditor = ({
     objectNameSingular,
   });
 
+  const currentWorkspace = useAtomStateValue(currentWorkspaceState);
+  const objectPermissions = useObjectPermissionsForObject(
+    objectMetadataItem.id,
+  );
+  const isProtectedSunyieldDraft =
+    currentWorkspace?.id === SUNYIELD_WORKSPACE_ID &&
+    ['note', 'task'].includes(objectNameSingular) &&
+    !objectPermissions.canUpdateObjectRecords;
+
   const fieldMetadataItem = objectMetadataItem.fields.find(
     (field) => field.name === fieldName,
   );
@@ -131,7 +145,14 @@ export const RichTextFieldEditor = ({
     });
   };
 
-  const fieldValue: FieldRichTextValue | undefined = recordInStore?.[fieldName];
+  const storedFieldValue: FieldRichTextValue | undefined =
+    recordInStore?.[fieldName];
+  const fieldValue =
+    currentWorkspace?.id === SUNYIELD_WORKSPACE_ID &&
+    objectNameSingular === 'task' &&
+    fieldName === 'bodyV2'
+      ? normalizeSunyieldTaskBody(storedFieldValue)
+      : storedFieldValue;
 
   const { updateDraft, markDirty, flush, draftResyncKey } =
     useRecordSeededDraft({
@@ -174,32 +195,35 @@ export const RichTextFieldEditor = ({
       tiptap: newSerializedDocument,
     };
 
-    store.set(
-      recordStoreFamilyState.atomFamily(recordId),
-      (prev: typeof oldRecord) => ({
-        ...prev,
-        id: recordId,
-        [fieldName]: newFieldValue,
-        __typename: prev?.__typename ?? objectNameSingular,
-      }),
-    );
+    if (!isProtectedSunyieldDraft) {
+      store.set(
+        recordStoreFamilyState.atomFamily(recordId),
+        (prev: typeof oldRecord) => ({
+          ...prev,
+          id: recordId,
+          [fieldName]: newFieldValue,
+          __typename: prev?.__typename ?? objectNameSingular,
+        }),
+      );
 
-    modifyRecordFromCache({
-      recordId,
-      fieldModifiers: {
-        [fieldName]: () => newFieldValue,
-      },
-      cache,
-      objectMetadataItem,
-    });
+      modifyRecordFromCache({
+        recordId,
+        fieldModifiers: {
+          [fieldName]: () => newFieldValue,
+        },
+        cache,
+        objectMetadataItem,
+      });
+    }
 
     // Only after capturing the pre-edit body: persisting rewrites the record, so the diff would miss removed attachments.
     updateDraft({ tiptap: stripRichTextFileUrlTokens(newSerializedDocument) });
 
-    await syncAttachments(
-      newSerializedDocument,
-      getRichTextFieldSerializedContent(oldFieldValue),
-    );
+    if (!isProtectedSunyieldDraft)
+      await syncAttachments(
+        newSerializedDocument,
+        getRichTextFieldSerializedContent(oldFieldValue),
+      );
   };
 
   const handleBodyChangeDebounced = useDebouncedCallback(handleBodyChange, 500);
@@ -252,9 +276,9 @@ export const RichTextFieldEditor = ({
       onUpdate: handleEditorUpdate,
       onFocus: handleEditorFocus,
       onBlur: handleEditorBlur,
-      onImageUpload: handleUploadFile,
+      onImageUpload: isProtectedSunyieldDraft ? undefined : handleUploadFile,
       onImageUploadError: handleUploadFileError,
-      onFileUpload: handleUploadFile,
+      onFileUpload: isProtectedSunyieldDraft ? undefined : handleUploadFile,
       onFileUploadError: handleUploadFileError,
     },
     [recordId, isRecordFieldReadOnly, draftResyncKey],

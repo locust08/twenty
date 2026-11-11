@@ -1,3 +1,4 @@
+import { useSunyieldStatus } from '@/sunyield/hooks/useSunyieldStatus';
 import { getObjectPermissionsForObject } from '@/object-metadata/utils/getObjectPermissionsForObject';
 import { isLabelIdentifierField } from '@/object-metadata/utils/isLabelIdentifierField';
 import { isRecordFieldReadOnly } from '@/object-record/read-only/utils/isRecordFieldReadOnly';
@@ -47,6 +48,11 @@ export const RecordTableCellFieldContextGeneric = ({
     fieldMetadataItemByFieldMetadataItemId[recordField.fieldMetadataItemId];
 
   const updateRecord = useContext(RecordTableUpdateContext);
+
+  const sunyield = useSunyieldStatus({
+    recordId,
+    fieldMetadataId: recordField.fieldMetadataItemId,
+  });
 
   if (!isDefined(fieldMetadataItem)) {
     return null;
@@ -127,13 +133,14 @@ export const RecordTableCellFieldContextGeneric = ({
           isRecordTableCellsNonEditable ||
           isInvalidJunctionRelation ||
           isFieldRestricted ||
-          isRecordFieldReadOnly({
-            isRecordReadOnly: isRecordReadOnly ?? false,
-            objectMetadataId: objectMetadataItem.id,
-            fieldMetadataItem,
-            fieldDefinition,
-            objectPermissionsByObjectMetadataId,
-          }),
+          (!sunyield.canEdit &&
+            isRecordFieldReadOnly({
+              isRecordReadOnly: isRecordReadOnly ?? false,
+              objectMetadataId: objectMetadataItem.id,
+              fieldMetadataItem,
+              fieldDefinition,
+              objectPermissionsByObjectMetadataId,
+            })),
         isForbidden: !hasObjectReadPermissions || isFieldRestricted,
       }}
     >

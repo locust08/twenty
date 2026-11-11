@@ -1,3 +1,4 @@
+import { buildSunyieldInvalidation } from 'src/modules/sunyield/permissions/sunyield-event-invalidation';
 import { Injectable, Logger } from '@nestjs/common';
 
 import {
@@ -99,6 +100,19 @@ export class ObjectRecordEventPublisher {
       workspaceId,
       activeStreamIds,
     );
+
+    const sunyieldInvalidation = buildSunyieldInvalidation(workspaceId);
+    if (sunyieldInvalidation) {
+      for (const [streamChannelId, streamData] of streamsData) {
+        if (!streamData) continue;
+        await this.subscriptionService.publishToEventStream({
+          workspaceId,
+          eventStreamChannelId: streamChannelId,
+          payload: sunyieldInvalidation,
+        });
+      }
+      return;
+    }
 
     const { permissionsContext, flatWorkspaceMemberMaps } =
       await this.fetchObjectRecordStreamContext(workspaceId);

@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { doNotTranslate } from 'twenty-shared/i18n';
 
 import { isNonEmptyString } from '@sniptt/guards';
 import { type ObjectRecord } from 'twenty-shared/types';
@@ -19,6 +22,11 @@ import { WorkflowExecutionContextService } from 'src/modules/workflow/workflow-e
 import { type WorkflowActionInput } from 'src/modules/workflow/workflow-executor/types/workflow-action-input.type';
 import { type WorkflowActionOutput } from 'src/modules/workflow/workflow-executor/types/workflow-action-output.type';
 import { findStepOrThrow } from 'src/modules/workflow/workflow-executor/utils/find-step-or-throw.util';
+import {
+  isSunyieldDynamicRotation,
+  orderSunyieldRotationCandidates,
+} from 'src/modules/sunyield/utils/sunyield-rotation';
+import { findSunyieldMappedRotationCandidateIds } from 'src/modules/sunyield/utils/sunyield-rotation-mapping';
 import { isWorkflowPickRecordAction } from 'src/modules/workflow/workflow-executor/workflow-actions/record-crud/guards/is-workflow-pick-record-action.guard';
 import {
   type WorkflowPickRecordActionInput,
@@ -40,6 +48,7 @@ export class PickRecordWorkflowAction implements WorkflowAction {
     private readonly workflowExecutionContextService: WorkflowExecutionContextService,
     @InjectCacheStorage(CacheStorageNamespace.ModuleWorkflow)
     private readonly cacheStorageService: CacheStorageService,
+    @InjectDataSource() private readonly database: DataSource,
   ) {}
 
   async execute({
@@ -64,12 +73,18 @@ export class PickRecordWorkflowAction implements WorkflowAction {
       step.settings.input,
       context,
     ) as WorkflowPickRecordActionInput;
+    const dynamicRotation = isSunyieldDynamicRotation({
+      workspaceId: runInfo.workspaceId,
+      stepId: currentStepId,
+      objectName,
+      strategy,
+    });
 
     if (!isNonEmptyString(objectName) || !Array.isArray(recordIds)) {
       return { error: 'Pick record action received invalid input' };
     }
 
-    if (recordIds.length === 0) {
+    if (!dynamicRotation && recordIds.length === 0) {
       return { error: 'Pick record action has no candidate records' };
     }
 
@@ -78,7 +93,9 @@ export class PickRecordWorkflowAction implements WorkflowAction {
 
     const findRecordsOutput = await this.findRecordsService.execute({
       objectName,
-      filter: { id: { in: recordIds } },
+      filter: dynamicRotation
+        ? { active: { eq: true } }
+        : { id: { in: recordIds } },
       authContext: executionContext.authContext,
       rolePermissionConfig: executionContext.rolePermissionConfig,
       shouldBuildEffectiveSelectFields: false,
@@ -93,13 +110,48 @@ export class PickRecordWorkflowAction implements WorkflowAction {
 
     if (candidateRecords.length === 0) {
       return {
-        error: 'Pick record action could not find any of the candidate records',
+        error: dynamicRotation
+          ? doNotTranslate('Sunyield rotation has no active salespeople.')
+          : 'Pick record action could not find any of the candidate records',
       };
     }
 
-    const orderedRecords = [...candidateRecords].sort((recordA, recordB) =>
-      String(recordA.id).localeCompare(String(recordB.id)),
-    );
+    let orderedRecords: ObjectRecord[];
+    if (dynamicRotation) {
+      if (findRecordsOutput.result?.hasNextPage)
+        return {
+          error: doNotTranslate(
+            'Sunyield rotation pool exceeds the supported candidate query size.',
+          ),
+        };
+      try {
+        const mappedIds = await findSunyieldMappedRotationCandidateIds(
+          this.database,
+          candidateRecords.map((record) => record.id),
+        );
+        const mappedRecords = candidateRecords.filter((record) =>
+          mappedIds.has(record.id),
+        );
+        if (mappedRecords.length === 0)
+          return {
+            error: doNotTranslate(
+              'Sunyield rotation has no active salespeople with a valid, unique workspace-member mapping.',
+            ),
+          };
+        orderedRecords = orderSunyieldRotationCandidates(mappedRecords);
+      } catch (error) {
+        return {
+          error:
+            error instanceof Error
+              ? error.message
+              : doNotTranslate('Invalid Sunyield rotation pool.'),
+        };
+      }
+    } else {
+      orderedRecords = [...candidateRecords].sort((recordA, recordB) =>
+        String(recordA.id).localeCompare(String(recordB.id)),
+      );
+    }
 
     if (strategy === 'LOAD_BALANCED') {
       if (!isDefined(loadBalance)) {

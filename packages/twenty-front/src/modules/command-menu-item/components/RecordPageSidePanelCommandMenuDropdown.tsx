@@ -13,8 +13,10 @@ import { CommandMenuComponentInstanceContext } from '@/command-menu/states/conte
 import { useAvailableComponentInstanceIdOrThrow } from '@/ui/utilities/state/component-state/hooks/useAvailableComponentInstanceIdOrThrow';
 import { CommandMenuDropdownActionItem } from '@/command-menu-item/display/components/CommandMenuDropdownActionItem';
 import { CommandMenuItemAvailabilityType } from '~/generated-metadata/graphql';
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 
 export const RecordPageSidePanelCommandMenuDropdown = () => {
+  const { enabled: isSunyield } = useSunyieldLayout();
   const { commandMenuItems } = useContext(CommandMenuContext);
 
   const commandMenuId = useAvailableComponentInstanceIdOrThrow(
@@ -73,6 +75,14 @@ export const RecordPageSidePanelCommandMenuDropdown = () => {
           item.isPinned !== true ||
           pinnedOverflowCommandMenuItemIds.has(item.id),
       );
+
+  if (
+    isSunyield &&
+    !isNonEmptyArray(dropdownWidgetCommandMenuItems) &&
+    !isNonEmptyArray(listedCommandMenuItems)
+  ) {
+    return null;
+  }
 
   return (
     <SidePanelOptionsDropdown dropdownId={dropdownId}>

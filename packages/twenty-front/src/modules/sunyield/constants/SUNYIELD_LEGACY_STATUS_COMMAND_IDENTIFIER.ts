@@ -1,0 +1,2 @@
+export const SUNYIELD_LEGACY_STATUS_COMMAND_IDENTIFIER =
+  '229b4cb9-3e8d-45ae-971d-7cff04adb2f1';

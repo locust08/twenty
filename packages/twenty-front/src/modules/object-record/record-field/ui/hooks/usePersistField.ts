@@ -1,3 +1,5 @@
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
+import { SUNYIELD_WORKSPACE_ID } from '@/sunyield/hooks/useSunyieldRecordAccess';
 import { useStore } from 'jotai';
 import { useCallback } from 'react';
 
@@ -267,6 +269,20 @@ export const usePersistField = ({
         }
 
         if (isDeeplyEqual(valueToPersist, currentValue)) {
+          return;
+        }
+
+        if (
+          store.get(currentWorkspaceState.atom)?.id === SUNYIELD_WORKSPACE_ID &&
+          ['lead', 'note', 'task', 'salesperson'].includes(
+            objectMetadataItem.nameSingular,
+          )
+        ) {
+          await updateOneRecord({
+            objectNameSingular: objectMetadataItem.nameSingular,
+            idToUpdate: recordId,
+            updateOneRecordInput: { [fieldName]: valueToPersist },
+          });
           return;
         }
 

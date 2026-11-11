@@ -1,3 +1,4 @@
+import { useCreateSunyieldActivity } from '@/sunyield/hooks/useCreateSunyieldActivity';
 import { useCallback } from 'react';
 import { useStore } from 'jotai';
 import { isNonEmptyArray } from '@sniptt/guards';
@@ -26,6 +27,7 @@ export const useCreateActivityInDB = ({
     | CoreObjectNameSingular.Task
     | CoreObjectNameSingular.Note;
 }) => {
+  const sunyield = useCreateSunyieldActivity(activityObjectNameSingular);
   const createOneActivityOperationSignature =
     createOneActivityOperationSignatureFactory({
       objectNameSingular: activityObjectNameSingular,
@@ -60,6 +62,32 @@ export const useCreateActivityInDB = ({
 
   const createActivityInDB = useCallback(
     async (activityToCreate: ActivityForEditor) => {
+      if (sunyield.protectedCreate) {
+        const targets = getJunctionRecordsFromRecord({
+          record: activityToCreate,
+          junctionFieldName: morphJunctionConfig.junctionField.name,
+        });
+        if (
+          targets.some((target) =>
+            Object.entries(target).some(
+              ([key, value]) =>
+                key.startsWith('target') &&
+                key.endsWith('Id') &&
+                key !== 'targetLeadId' &&
+                value != null,
+            ),
+          )
+        )
+          throw new Error('Choose one assigned lead');
+        await sunyield.create(
+          targets.map((target) => ({
+            id: String(target.targetLeadId ?? ''),
+            targetObjectNameSingular: 'lead',
+          })),
+          activityToCreate,
+        );
+        return;
+      }
       const createdActivity = await createOneActivity?.({
         ...activityToCreate,
         updatedAt: new Date().toISOString(),
@@ -105,6 +133,7 @@ export const useCreateActivityInDB = ({
       });
     },
     [
+      sunyield,
       store,
       cache,
       createManyActivityTargets,

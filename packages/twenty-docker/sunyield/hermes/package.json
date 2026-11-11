@@ -1,0 +1,1 @@
+{"name":"sunyield-hermes","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","start":"node src/main.mjs"},"dependencies":{"qrcode":"1.5.4"}}

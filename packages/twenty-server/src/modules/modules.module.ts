@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SunyieldModule } from 'src/modules/sunyield/sunyield.module';
 
 import { MessagingQueryHookModule } from 'src/modules/messaging/common/query-hooks/messaging-query-hook.module';
 import { CalendarQueryHookModule } from 'src/modules/calendar/common/query-hooks/calendar-query-hook.module';
@@ -26,6 +27,7 @@ import { WorkspaceMemberModule } from 'src/modules/workspace-member/workspace-me
 
 @Module({
   imports: [
+    SunyieldModule,
     MessagingModule,
     CalendarModule,
     ConnectedAccountModule,

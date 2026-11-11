@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { t } from '@lingui/core/macro';
 import { isNonEmptyString } from '@sniptt/guards';
 import { Fragment, type ReactNode } from 'react';
@@ -126,7 +127,22 @@ export const NavigationDrawerItemForObjectMetadataItem = ({
     !canReadObjectRecords &&
     !isNonEmptyString(primaryLabel.trim());
 
-  const label = needsInaccessibleRecordPlaceholder ? t`Record` : primaryLabel;
+  const { enabled: isSunyield, isAdmin } = useSunyieldLayout();
+  const label = needsInaccessibleRecordPlaceholder
+    ? t`Record`
+    : isSunyield &&
+        !isAdmin &&
+        !isRecord &&
+        !isViewWithResolvedView &&
+        objectMetadataItem.nameSingular === 'lead'
+      ? t`My Leads`
+      : isSunyield &&
+          !isAdmin &&
+          !isRecord &&
+          !isViewWithResolvedView &&
+          objectMetadataItem.nameSingular === 'task'
+        ? t`My Follow-ups`
+        : primaryLabel;
 
   const recordIdentifier =
     isRecord && isDefined(navigationMenuItem?.targetRecordIdentifier)

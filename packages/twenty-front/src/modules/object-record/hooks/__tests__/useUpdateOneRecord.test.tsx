@@ -1,3 +1,7 @@
+const mockManagedUpdate = jest.fn().mockResolvedValue(undefined);
+jest.mock('@/sunyield/hooks/useSunyieldManagement', () => ({
+  useSunyieldManagement: () => ({ update: mockManagedUpdate }),
+}));
 import { act, renderHook } from '@testing-library/react';
 
 import {
@@ -51,6 +55,26 @@ const idToUpdate = '36abbb63-34ed-4a16-89f5-f549ac55d0f9';
 describe('useUpdateOneRecord', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+  it('returns a confirmed managed response before invoking native mutations', async () => {
+    mockManagedUpdate.mockResolvedValueOnce({
+      id: idToUpdate,
+      name: 'Confirmed',
+    });
+    const { result } = renderHook(() => useUpdateOneRecord(), {
+      wrapper: Wrapper,
+    });
+    await act(async () => {
+      await expect(
+        result.current.updateOneRecord({
+          objectNameSingular: 'person',
+          idToUpdate,
+          updateOneRecordInput: updateInput,
+        }),
+      ).resolves.toMatchObject({ name: 'Confirmed' });
+    });
+    expect(mocks[0].result).not.toHaveBeenCalled();
+    expect(mockRefetchAggregateQueries).not.toHaveBeenCalled();
   });
   it('works as expected', async () => {
     const { result } = renderHook(() => useUpdateOneRecord(), {

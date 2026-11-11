@@ -1,3 +1,7 @@
+const mockProtectedCreate = { protectedCreate: false, create: jest.fn() };
+jest.mock('@/sunyield/hooks/useCreateSunyieldActivity', () => ({
+  useCreateSunyieldActivity: () => mockProtectedCreate,
+}));
 import { act, renderHook } from '@testing-library/react';
 
 import { useOpenCreateActivityDrawer } from '@/activities/hooks/useOpenCreateActivityDrawer';
@@ -37,8 +41,33 @@ const fakeNoteId = 'fake-note-id';
 describe('useOpenCreateActivityDrawer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockProtectedCreate.protectedCreate = false;
     mockCreateOneNote.mockResolvedValue({ id: fakeNoteId });
     mockCreateManyNoteTargets.mockResolvedValue([]);
+  });
+
+  it('creates a protected lead activity atomically and opens the native drawer', async () => {
+    mockProtectedCreate.protectedCreate = true;
+    mockProtectedCreate.create.mockResolvedValue({ id: fakeNoteId });
+    const { result } = renderHook(
+      () =>
+        useOpenCreateActivityDrawer({
+          activityObjectNameSingular: CoreObjectNameSingular.Note,
+        }),
+      { wrapper: Wrapper },
+    );
+    const targets = [{ id: 'assigned-lead', targetObjectNameSingular: 'lead' }];
+    await act(async () => {
+      await result.current({ targetableObjects: targets });
+    });
+    expect(mockProtectedCreate.create).toHaveBeenCalledWith(targets);
+    expect(mockCreateOneNote).not.toHaveBeenCalled();
+    expect(mockCreateManyNoteTargets).not.toHaveBeenCalled();
+    expect(mockOpenRecordInSidePanel).toHaveBeenCalledWith({
+      recordId: fakeNoteId,
+      objectNameSingular: 'note',
+      isNewRecord: true,
+    });
   });
 
   it('should create a note without an empty junction record then open the side panel', async () => {

@@ -1,3 +1,5 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
+import { normalizeSunyieldTaskBody } from '@/sunyield/utils/normalizeSunyieldTaskBody';
 import { styled } from '@linaria/react';
 import { t } from '@lingui/core/macro';
 import { isNonEmptyString } from '@sniptt/guards';
@@ -99,7 +101,11 @@ export const TaskRow = ({
   const theme = useTheme();
   const { openRecordInSidePanel } = useOpenRecordInSidePanel();
 
-  const body = getRichTextFieldTextLines(task?.bodyV2)[0] ?? '';
+  const { enabled: isSunyield } = useSunyieldLayout();
+  const body =
+    getRichTextFieldTextLines(
+      isSunyield ? normalizeSunyieldTaskBody(task?.bodyV2) : task?.bodyV2,
+    )[0] ?? '';
 
   const { completeTask } = useCompleteTask(task);
 

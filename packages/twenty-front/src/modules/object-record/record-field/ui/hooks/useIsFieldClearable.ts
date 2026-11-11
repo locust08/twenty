@@ -1,3 +1,4 @@
+import { useSunyieldStatus } from '@/sunyield/hooks/useSunyieldStatus';
 import { useContext } from 'react';
 
 import { FieldContext } from '@/object-record/record-field/ui/contexts/FieldContext';
@@ -7,9 +8,15 @@ import { FieldContext } from '@/object-record/record-field/ui/contexts/FieldCont
 // Instead of passing it in the context
 // See: https://github.com/twentyhq/twenty/issues/4403
 export const useIsFieldClearable = (): boolean => {
-  const { clearable, isLabelIdentifier } = useContext(FieldContext);
+  const { clearable, isLabelIdentifier, recordId, fieldDefinition } =
+    useContext(FieldContext);
+  const { isProtectedStatus } = useSunyieldStatus({
+    recordId,
+    fieldMetadataId: fieldDefinition?.fieldMetadataId ?? '',
+  });
 
-  const fieldCanBeCleared = !isLabelIdentifier && clearable !== false;
+  const fieldCanBeCleared =
+    !isProtectedStatus && !isLabelIdentifier && clearable !== false;
 
   return fieldCanBeCleared;
 };

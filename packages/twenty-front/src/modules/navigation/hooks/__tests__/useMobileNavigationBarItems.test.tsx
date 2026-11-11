@@ -1,3 +1,5 @@
+import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
+import { mockCurrentWorkspace } from '~/testing/mock-data/users';
 import { useSwitchToNewAiChat } from '@/ai/hooks/useSwitchToNewAiChat';
 import { useMobileNavigationBarItems } from '@/navigation/hooks/useMobileNavigationBarItems';
 import { useHasPermissionFlag } from '@/settings/roles/hooks/useHasPermissionFlag';
@@ -137,4 +139,22 @@ describe('useMobileNavigationBarItems', () => {
 
     expect(result.current.location.pathname).toBe('/objects/people');
   });
+});
+
+it('omits optional AI on SunYield mobile without removing home or search', () => {
+  jest.mocked(useHasPermissionFlag).mockReturnValue(true);
+  jest
+    .mocked(useSwitchToNewAiChat)
+    .mockReturnValue({ switchToNewChat: mockSwitchToNewChat });
+  const { result, store } = renderMobileNavigationBarItems('/objects/leads');
+  act(() =>
+    store.set(currentWorkspaceState.atom, {
+      ...mockCurrentWorkspace,
+      id: 'e7e7d4f2-0f82-4a72-a12e-1f61494c61c6',
+    }),
+  );
+  expect(result.current.items.map((item) => item.name)).toEqual([
+    'home',
+    'search',
+  ]);
 });

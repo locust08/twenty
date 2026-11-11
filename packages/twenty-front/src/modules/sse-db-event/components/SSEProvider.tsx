@@ -1,3 +1,4 @@
+import { SunyieldLeadUnavailableNotificationEffect } from '@/sunyield/components/SunyieldLeadUnavailableNotificationEffect';
 import { MetadataStoreSSEEffect } from '@/metadata-store/effect-components/MetadataStoreSSEEffect';
 import { SSEClientEffect } from '@/sse-db-event/components/SSEClientEffect';
 import { SSEEventStreamEffect } from '@/sse-db-event/components/SSEEventStreamEffect';
@@ -14,6 +15,7 @@ export const SSEProvider = ({ children }: SSEProviderProps) => {
     <>
       <SSEClientEffect />
       <SSEEventStreamEffect />
+      <SunyieldLeadUnavailableNotificationEffect />
       <SSEQuerySubscribeEffect />
       <SSEKeepAliveEffect />
       <MetadataStoreSSEEffect />

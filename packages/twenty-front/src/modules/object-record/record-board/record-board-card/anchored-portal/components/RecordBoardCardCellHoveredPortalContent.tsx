@@ -15,8 +15,11 @@ import { useAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useAtomC
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState';
 import { useContext } from 'react';
+import { RecordBoardContext } from '@/object-record/record-board/contexts/RecordBoardContext';
+import { SunyieldBoardFieldTooltip } from '@/sunyield/components/SunyieldBoardFieldTooltip';
 
 export const RecordBoardCardCellHoveredPortalContent = () => {
+  const { objectMetadataItem } = useContext(RecordBoardContext);
   const { editModeContentOnly, isCentered } = useRecordInlineCellContext();
 
   const {
@@ -75,9 +78,15 @@ export const RecordBoardCardCellHoveredPortalContent = () => {
       isCentered={isCentered}
       onMouseLeave={handleMouseLeave}
     >
-      <RecordInlineCellDisplayMode isHovered={true} onClick={handleClick}>
-        {editModeContentOnly ? <FieldInput /> : <FieldDisplay />}
-      </RecordInlineCellDisplayMode>
+      <SunyieldBoardFieldTooltip
+        objectName={objectMetadataItem.nameSingular}
+        fieldName={fieldDefinition.metadata.fieldName}
+        label={fieldDefinition.label}
+      >
+        <RecordInlineCellDisplayMode isHovered={true} onClick={handleClick}>
+          {editModeContentOnly ? <FieldInput /> : <FieldDisplay />}
+        </RecordInlineCellDisplayMode>
+      </SunyieldBoardFieldTooltip>
     </RecordInlineCellHoveredPortalContent>
   );
 };

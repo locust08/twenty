@@ -117,6 +117,13 @@ import {
 import { WorkspaceSelectQueryBuilder } from 'src/engine/twenty-orm/query-builder/workspace-select-query-builder';
 import { compileNamedParameters } from 'src/engine/twenty-orm/sql/utils/compile-named-parameters.util';
 import { escapeIdentifier } from 'src/engine/workspace-manager/workspace-migration/utils/remove-sql-injection.util';
+import { SUNYIELD_WORKSPACE_ID } from 'src/modules/sunyield/authorize-sunyield-status';
+import { applySunyieldLeadSourceMapping } from 'src/modules/sunyield/utils/apply-sunyield-lead-source-mapping';
+import { buildSunyieldRowVisibility } from 'src/modules/sunyield/permissions/sunyield-row-visibility';
+import {
+  assertSunyieldOwnershipTransition,
+  prepareSunyieldNativeWrite,
+} from 'src/modules/sunyield/permissions/sunyield-native-write-guard';
 import { serializeJsonbWriteValue } from 'src/engine/twenty-orm/sql/utils/serialize-jsonb-write-value.util';
 import {
   type WorkspaceRelationShape,
@@ -1011,6 +1018,10 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     generatedMaps: ObjectRecord[];
     raw: ObjectRecord[];
   }> {
+    if (this.requiresSunyieldTransaction()) {
+      return this.runAtomically((repository) => repository.runInsert(args));
+    }
+
     return this.runWithValidationRules({
       inputRecordIds: args.records.map((record) => record.id),
       write: (repository, validateWrittenRecords) =>
@@ -1035,6 +1046,24 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
   }> {
     if (records.length === 0) {
       return { identifiers: [], generatedMaps: [], raw: [] };
+    }
+
+    await prepareSunyieldNativeWrite(this.sunyieldWriteBoundary);
+    records = records.map((record) =>
+      applySunyieldLeadSourceMapping({
+        workspaceId: this.options.internalContext.workspaceId,
+        objectName: this.options.tableShape.nameSingular,
+        record,
+      }),
+    );
+    for (const record of records) {
+      await assertSunyieldOwnershipTransition({
+        ...this.sunyieldWriteBoundary,
+        objectName: this.options.tableShape.nameSingular,
+        operation: 'insert',
+        data: record,
+        recordsBefore: [],
+      });
     }
 
     const filesFieldDiff =
@@ -1121,6 +1150,12 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     generatedMaps: ObjectRecord[];
     raw: ObjectRecord[];
   }> {
+    if (this.requiresSunyieldTransaction()) {
+      return this.runAtomically((repository) =>
+        repository.runBatchUpdate(args),
+      );
+    }
+
     return this.runWithValidationRules({
       inputRecordIds: args.inputs.map((input) => input.id),
       write: (repository, validateWrittenRecords) =>
@@ -1144,6 +1179,8 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     if (inputs.length === 0) {
       return { identifiers: [], generatedMaps: [], raw: [] };
     }
+
+    await prepareSunyieldNativeWrite(this.sunyieldWriteBoundary);
 
     const writableRecordIds = await this.resolveWritableRecordIds({
       ids: inputs.map((input) => input.id),
@@ -1240,6 +1277,14 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     for (const [index, input] of writableInputs.entries()) {
       const setColumns = setColumnsByInputIndex[index];
       const rawBeforeForInput = rawBeforeByInputIndex[index];
+
+      await assertSunyieldOwnershipTransition({
+        ...this.sunyieldWriteBoundary,
+        objectName: this.options.tableShape.nameSingular,
+        operation: 'update',
+        data: setColumns,
+        recordsBefore: rawBeforeForInput,
+      });
 
       const selectQueryBuilder = this.createQueryBuilder().where({
         id: input.id,
@@ -1617,6 +1662,17 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     columnsToReturn: string[];
     data?: Partial<ObjectRecord>;
   }): Promise<ObjectRecord[]> {
+    if (this.requiresSunyieldTransaction()) {
+      return this.runAtomically((repository) =>
+        repository.runMutation({
+          ...args,
+          selectQueryBuilder: args.selectQueryBuilder.clone(
+            repository.options.executor,
+          ),
+        }),
+      );
+    }
+
     if (args.kind !== 'update') {
       return this.performMutation(args);
     }
@@ -1649,6 +1705,8 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     data?: Partial<ObjectRecord>;
     validateWrittenRecords?: ValidateWrittenRecords;
   }): Promise<ObjectRecord[]> {
+    await prepareSunyieldNativeWrite(this.sunyieldWriteBoundary);
+
     this.validateWriteIsPermitted({
       operationType: kind,
       columnsToReturn,
@@ -1667,6 +1725,7 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     const canSkipBeforeImage =
       this.options.shouldBypassPermissionChecks &&
       this.options.shouldSkipEventEmission &&
+      this.options.internalContext.workspaceId !== SUNYIELD_WORKSPACE_ID &&
       !(
         kind === 'update' &&
         isDefined(data) &&
@@ -1727,6 +1786,14 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
 
       setColumns = columns;
     }
+
+    await assertSunyieldOwnershipTransition({
+      ...this.sunyieldWriteBoundary,
+      objectName: this.options.tableShape.nameSingular,
+      operation: kind,
+      data: setColumns,
+      recordsBefore,
+    });
 
     if (kind === 'update' && isDefined(setColumns)) {
       await this.validateRLSPredicatesForUpdatedRecords(
@@ -2103,6 +2170,23 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     this.validateQueryIsPermitted(queryBuilder);
   }
 
+  private requiresSunyieldTransaction(): boolean {
+    return (
+      this.options.internalContext.workspaceId === SUNYIELD_WORKSPACE_ID &&
+      !this.options.isTransactional
+    );
+  }
+
+  private get sunyieldWriteBoundary() {
+    return {
+      workspaceId: this.options.internalContext.workspaceId,
+      schemaName: this.options.tableShape.schemaName,
+      authContext: this.options.authContext,
+      execute: (sql: string, parameters: unknown[] = []) =>
+        this.options.executor.execute({ text: sql, values: parameters }),
+    };
+  }
+
   private validateQueryIsPermitted(
     queryBuilder: WorkspaceSelectQueryBuilder,
   ): void {
@@ -2143,6 +2227,8 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
     queryBuilder: WorkspaceSelectQueryBuilder,
     operationType: OperationType = 'select',
   ): void {
+    this.applySunyieldVisibility(queryBuilder);
+
     if (this.options.shouldBypassPermissionChecks) {
       return;
     }
@@ -2169,6 +2255,64 @@ export class WorkspaceRepository<TEntity extends ObjectLiteral = ObjectRecord> {
         ),
         operationType: 'select',
       });
+    }
+  }
+
+  private applySunyieldVisibility(
+    queryBuilder: WorkspaceSelectQueryBuilder,
+  ): void {
+    if (this.options.internalContext.workspaceId !== SUNYIELD_WORKSPACE_ID) {
+      return;
+    }
+
+    const objectMetadataIds =
+      this.options.internalContext.objectIdByNameSingular;
+    const targetColumns = (shape: WorkspaceTableShape | undefined) =>
+      shape?.columnNames.filter(
+        (column) => column.startsWith('target') && column.endsWith('Id'),
+      ) ?? [];
+    const activityColumns = (kind: 'note' | 'task') => {
+      const metadataId = objectMetadataIds[kind + 'Target'];
+
+      return isDefined(metadataId)
+        ? targetColumns(this.options.tableShapeByObjectMetadataId(metadataId))
+        : [];
+    };
+
+    for (const alias of [
+      queryBuilder.alias,
+      ...queryBuilder.getJoinAliases().map((join) => join.name),
+    ]) {
+      if (!queryBuilder.markRowLevelPermissionApplied(alias, 'sunyield')) {
+        continue;
+      }
+
+      const shape =
+        alias === queryBuilder.alias
+          ? this.options.tableShape
+          : queryBuilder.getJoinedTableShape(alias);
+
+      if (!isDefined(shape)) {
+        continue;
+      }
+
+      const condition = buildSunyieldRowVisibility({
+        workspaceId: this.options.internalContext.workspaceId,
+        authContext: this.options.authContext,
+        objectName: shape.nameSingular,
+        tableAlias: alias,
+        schemaName: shape.schemaName,
+        targetColumns: targetColumns(shape),
+        activityTargetColumns: {
+          note: activityColumns('note'),
+          task: activityColumns('task'),
+        },
+        objectMetadataIds,
+      });
+
+      if (isDefined(condition)) {
+        this.addConditionForAlias({ queryBuilder, alias, ...condition });
+      }
     }
   }
 

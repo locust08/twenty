@@ -1,3 +1,4 @@
+import { useSunyieldLayout } from '@/sunyield/hooks/useSunyieldLayout';
 import { useSwitchToNewAiChat } from '@/ai/hooks/useSwitchToNewAiChat';
 import { MAIN_CONTEXT_STORE_INSTANCE_ID } from '@/context-store/constants/MainContextStoreInstanceId';
 import { contextStoreCurrentObjectMetadataItemIdComponentState } from '@/context-store/states/contextStoreCurrentObjectMetadataItemIdComponentState';
@@ -37,6 +38,7 @@ export const useMobileNavigationBarItems = (): {
   activeItemName: MobileNavigationBarItemName | '';
 } => {
   const { t } = useLingui();
+  const { enabled: isSunyield } = useSunyieldLayout();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { closeSidePanelMenu } = useSidePanelMenu();
@@ -104,7 +106,7 @@ export const useMobileNavigationBarItems = (): {
           openRecordsSearchPage();
         },
       },
-      ...(hasAiPermission
+      ...(hasAiPermission && !isSunyield
         ? [
             {
               name: 'newAiChat' as const,
